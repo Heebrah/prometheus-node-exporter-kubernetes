@@ -1,0 +1,99 @@
+Got it — you’ve already downloaded and extracted
+
+```
+wget https://github.com/prometheus/prometheus/releases/download/v2.43.0/prometheus-2.43.0.linux-amd64.tar.gz
+tar -xvf prometheus-2.43.0.linux-amd64.tar.gz
+cd prometheus-2.43.0.linux-amd64
+```
+
+Here’s what to do next to actually make it a working Prometheus server that collects metrics from your Kubernetes cluster.
+
+---
+
+### **1️⃣ Verify the Prometheus files**
+
+Inside the folder, you should see:
+
+```
+prometheus           # main binary
+promtool             # config checker
+prometheus.yml       # default config file
+console_libraries/   # web console helpers
+consoles/            # web console templates
+```
+
+---
+
+### **2️⃣ Edit the config to scrape Kubernetes**
+
+Open `prometheus.yml` and replace or add scrape jobs for your Kubernetes services.
+For example, if you’ve deployed **node-exporter** in your cluster:
+
+```yaml
+scrape_configs:
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['<NODE_IP>:9100']   # replace with node IPs
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+```
+
+If your Prometheus server is **outside** the cluster, you’ll need public IPs or port-forward to reach Kubernetes metrics exporters.
+
+---
+
+### **3️⃣ Start Prometheus**
+
+Run:
+
+```bash
+./prometheus --config.file=prometheus.yml
+```
+
+By default:
+
+* **Prometheus UI:** [http://localhost:9090](http://localhost:9090)
+* Config file is loaded from the path you give in `--config.file`
+
+---
+
+### **4️⃣ Check if it’s scraping**
+
+In the Prometheus UI:
+
+* Go to **Status → Targets**
+* Ensure `node-exporter` and other jobs show **UP**
+  If not, check firewall/port forwarding.
+
+---
+
+### **5️⃣ Optional – Run as a background service**
+
+Create a `prometheus.service` file for `systemd` so it runs on boot:
+
+```ini
+[Unit]
+Description=Prometheus
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=prometheus
+ExecStart=/path/to/prometheus --config.file=/path/to/prometheus.yml --storage.tsdb.path=/path/to/data
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+💡 **Important:**
+If your goal is Kubernetes monitoring, running Prometheus **inside the cluster** (as a pod in `monitoring` namespace) is much easier — you won’t have to manually list node IPs, and service discovery works automatically.
+
+---
+
+If you want, I can give you the **exact prometheus.yml config** to make your local Prometheus scrape your Kubernetes cluster’s metrics from `node-exporter` and `kube-state-metrics`.
+That way, you’ll see cluster metrics instantly.
