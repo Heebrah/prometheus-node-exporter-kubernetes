@@ -142,6 +142,45 @@ using
 sudo systemctl restart prometheus
 ```
 
+
+## 4b. Install Prometheus Server (Option B)
+
+### Option A: Using Helm (recommended)
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install prometheus prometheus-community/prometheus -n monitoring
+```
+
+### Option B: Using Manifests
+
+* Ensure you have a `StorageClass` for dynamic volume provisioning:
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-csi
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  fsType: ext4
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+```
+
+* Apply StorageClass:
+
+```bash
+kubectl apply -f gp3-csi-storageclass.yaml
+```
+
+* Deploy Prometheus manifests that use PVC referencing this StorageClass.
+
+---
+
+
 ## 5. Access Metrics Locally
 
 ![caption](/img/30.run-kubectl.jpg)
